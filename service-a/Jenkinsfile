@@ -1,0 +1,26 @@
+pipeline {
+    agent any
+    stages {
+        stage('Checkout') {
+            steps {
+                git 'https://github.com/your-repo/service-a.git'
+            }
+        }
+        stage('Build') {
+            steps {
+                sh 'mvn clean package -DskipTests'
+            }
+        }
+        stage('Deploy') {
+            steps {
+                sh 'docker build -t service-a .'
+                sh 'docker run -d --name service-a -p 8080:8080 service-a'
+            }
+        }
+        stage('Trigger Service B') {
+            steps {
+                build job: 'service-b'
+            }
+        }
+    }
+}
