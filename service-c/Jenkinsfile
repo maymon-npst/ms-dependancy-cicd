@@ -1,20 +1,40 @@
 pipeline {
     agent any
+
+    environment {
+        REPO_URL = 'https://github.com/maymon-npst/ms-dependancy-cicd.git'
+        SERVICE_NAME = 'service-c'
+        IMAGE_NAME = 'service-c'
+    }
+
     stages {
+        stage('Wait for Service B') {
+            steps {
+                script {
+                    build job: 'service-b', wait: true
+                }
+            }
+        }
         stage('Checkout') {
             steps {
-                git 'https://github.com/your-repo/service-c.git'
+                git branch: 'main', url: "${REPO_URL}"
             }
         }
         stage('Build') {
             steps {
+                echo 'Building Service C'
                 sh 'mvn clean package -DskipTests'
             }
         }
-        stage('Deploy') {
+        stage('Docker Build & Deploy') {
             steps {
-                sh 'docker build -t service-c .'
-                sh 'docker run -d --name service-c -p 8082:8082 service-c'
+                script {
+                    echo 'Building Docker image for Service C'
+                    sh "docker build -t ${IMAGE_NAME} ."
+
+                    echo 'Running Service C Container'
+                    sh "docker run -d --name ${SERVICE_NAME} -p 8082:8082 ${IMAGE_NAME}"
+                }
             }
         }
     }
