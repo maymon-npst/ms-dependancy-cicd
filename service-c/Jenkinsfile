@@ -1,0 +1,21 @@
+pipeline {
+    agent any
+    stages {
+        stage('Checkout') {
+            steps {
+                git 'https://github.com/your-repo/service-c.git'
+            }
+        }
+        stage('Build') {
+            steps {
+                sh 'mvn clean package -DskipTests'
+            }
+        }
+        stage('Deploy') {
+            steps {
+                sh 'docker build -t service-c .'
+                sh 'docker run -d --name service-c -p 8082:8082 service-c'
+            }
+        }
+    }
+}
