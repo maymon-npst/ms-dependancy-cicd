@@ -1,9 +1,18 @@
 pipeline {
     agent any
+
+    environment {
+        REPO_URL = 'https://github.com/maymon-npst/ms-dependancy-cicd.git'
+        SERVICE_NAME = 'service-a'
+        IMAGE_NAME = 'service-a'
+        CONTAINER_NAME = 'service-a'
+        PORT = '8080'
+    }
+
     stages {
         stage('Checkout') {
             steps {
-                git 'https://github.com/your-repo/service-a.git'
+                git branch: 'main', url: "${REPO_URL}"
             }
         }
         stage('Build') {
@@ -11,15 +20,23 @@ pipeline {
                 sh 'mvn clean package -DskipTests'
             }
         }
-        stage('Deploy') {
+        stage('Docker Build & Deploy') {
             steps {
-                sh 'docker build -t service-a .'
-                sh 'docker run -d --name service-a -p 8080:8080 service-a'
+                script {
+                    sh '''
+                    docker stop ${CONTAINER_NAME} || true
+                    docker rm ${CONTAINER_NAME} || true
+                    docker build -t ${IMAGE_NAME} .
+                    docker run -d --name ${CONTAINER_NAME} -p ${PORT}:${PORT} ${IMAGE_NAME}
+                    '''
+                }
             }
         }
         stage('Trigger Service B') {
             steps {
-                build job: 'service-b'
+                script {
+                    build job: 'service-b'
+                }
             }
         }
     }
