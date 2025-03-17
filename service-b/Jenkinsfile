@@ -1,27 +1,45 @@
 pipeline {
     agent any
+
+    environment {
+        REPO_URL = 'https://github.com/maymon-npst/ms-dependancy-cicd.git'
+        SERVICE_NAME = 'service-b'
+        YAML_FILE = 'service-b.yaml'
+    }
+
     stages {
+        stage('Wait for Service A') {
+            steps {
+                script {
+                    build job: 'service-a', wait: true
+                }
+            }
+        }
         stage('Checkout') {
             steps {
-                git 'https://github.com/your-repo/service-b.git'
+                git branch: 'main', url: "${REPO_URL}"
             }
         }
         stage('Build') {
             steps {
+                echo 'Building Service B'
                 sh 'mvn clean package -DskipTests'
             }
         }
-        stage('Deploy') {
+        stage('Deploy to Kubernetes') {
             steps {
-                sh 'docker build -t service-b .'
-                sh 'docker run -d --name service-b -p 8081:8081 service-b'
+                script {
+                    echo 'Deploying Service B'
+                    sh "kubectl apply -f ${YAML_FILE}"
+                }
             }
         }
         stage('Trigger Service C') {
             steps {
-                build job: 'service-c'
+                script {
+                    build job: 'service-c'
+                }
             }
         }
     }
 }
-
